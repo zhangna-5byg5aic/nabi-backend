@@ -51,16 +51,16 @@ public class ExcelUtils {
         LinkedHashMap<Integer,String> headerMap = (LinkedHashMap)list.get(0);
         List<String> headerList = headerMap.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
         stringBuilder.append(headerList).append("\n");
-        System.out.println(StringUtils.join( headerList,","));
+//        System.out.println(StringUtils.join( headerList,","));
         //按行读取数据
-        for(int i =1;i<headerMap.size();i++)
+        for(int i =1;i<list.size();i++)
         {
             LinkedHashMap<Integer,String> dataMap = (LinkedHashMap)list.get(i);
             List<String> dataList = dataMap.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
             stringBuilder.append(dataList).append('\n');
-            System.out.println(StringUtils.join( dataList,","));
+//            System.out.println(StringUtils.join( dataList,","));
         }
-        System.out.println(list);
+//        System.out.println(list);
         return stringBuilder.toString();
     }
     public static void main(String[] args) throws Exception {
