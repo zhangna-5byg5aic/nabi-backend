@@ -1,6 +1,7 @@
 package com.yupi.springbootinit.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,6 +16,7 @@ import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
 import com.yupi.springbootinit.manager.AIManager;
+import com.yupi.springbootinit.manager.RedisLimiterManager;
 import com.yupi.springbootinit.model.dto.chart.*;
 import com.yupi.springbootinit.model.dto.file.UploadFileRequest;
 import com.yupi.springbootinit.model.dto.post.PostQueryRequest;
@@ -27,6 +29,7 @@ import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.UserService;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -61,6 +64,8 @@ public class ChartController {
 
     @Resource
     private AIManager aiManager;
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     // region 增删改查
 
@@ -280,6 +285,7 @@ public class ChartController {
     @PostMapping("/gen")
     public BaseResponse<BiResponse> genChartByAI(@RequestPart("file") MultipartFile multipartFile,
                                              GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
+
         User userLogin = userService.getLoginUser(request);
 
         String chartName = genChartByAIRequest.getChartName();
@@ -288,6 +294,18 @@ public class ChartController {
         //校验
         ThrowUtils.throwIf(StringUtils.isBlank(goal),ErrorCode.PARAMS_ERROR,"目标为空");
         ThrowUtils.throwIf(StringUtils.isBlank(chartName)&&chartName.length()>100,ErrorCode.PARAMS_ERROR,"名称有误");
+        //校验文件
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+        //检验文件大小
+        final Long ONE_MB = 1024*1024L;
+        ThrowUtils.throwIf(size>ONE_MB,ErrorCode.PARAMS_ERROR,"文件大小超过1M");
+        //检验文件后缀
+        String suffix = FileUtil.getSuffix(originalFilename);
+        final List<String> validFilesSuffix = Arrays.asList("png","jpg","xls","xlsx");
+        ThrowUtils.throwIf(!validFilesSuffix.contains(suffix),ErrorCode.PARAMS_ERROR,"文件后缀非法");
+        //限流判断,每个用户针对这个方法限流
+        redisLimiterManager.doRateLimit("genChartByAI_"+String.valueOf(userLogin.getId()));
         //模型ID
         Long modelId=1794008257751883778L;
         //拼接用户输入
