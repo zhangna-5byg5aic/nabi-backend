@@ -18,6 +18,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -58,18 +60,28 @@ public class BiMessageConsumer {
             channel.basicNack(deliveryTag,false,false);
             handleChartUpdateError(chart.getId(),"更新图表运行状态失败");
         }
-        //调用AI生成结果
-        String chatResult = aiManager.doChat(CommonConstant.BI_MODEL_ID,buildUserInput(chart));
+       //查找原始数据，并拼合
+        List<Map<String, Object>> chartData = chartService.getAllChartData("chartdata_"+chart.getId());
+        // 创建一个StringBuilder来存储总的结果
+        StringBuilder finalResult = new StringBuilder();
 
-        //拆分结果
-        String[] splits = chatResult.split("【【【【【");
-        if(splits.length<3)
-        {
-            channel.basicNack(deliveryTag,false,false);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"AI生成结果有误");
+        // 将每个map的value连接成一个字符串
+        for (Map<String, Object> map : chartData) {
+            String result = String.join(",", map.values().stream()
+                    .map(Object::toString)
+                    .toArray(String[]::new));
+            if (finalResult.length() > 0) {
+                finalResult.append("\n");
+            }
+            finalResult.append(result);
         }
-        String genChart = splits[1];
-        String genResult = splits[2];
+        //调用AI生成结果
+//        String chatResult = aiManager.doChat(CommonConstant.BI_MODEL_ID,buildUserInput(chart));
+        String chatResult = aiManager.doQingChat(chart.getGoal(),finalResult.toString());
+
+        List<String> res = AIManager.extractTexts(chatResult);
+        String genChart = res.get(0);
+        String genResult = res.get(1);
 
         Chart aiChart = new Chart();
         aiChart.setId(chart.getId());

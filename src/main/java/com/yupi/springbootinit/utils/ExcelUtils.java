@@ -63,6 +63,21 @@ public class ExcelUtils {
 //        System.out.println(list);
         return stringBuilder.toString();
     }
+    public static List<Map<Integer, String>> getExcel(MultipartFile multipartFile)
+    {
+        List<Map<Integer, String>> list = null;
+        try {
+            list = EasyExcel.read(multipartFile.getInputStream())
+                    .excelType(ExcelTypeEnum.XLSX)
+                    .sheet()
+                    .headRowNumber(0)
+                    .doReadSync();
+        } catch (IOException e) {
+            log.error("表格处理错误",e);
+//            throw new RuntimeException(e);
+        }
+        return list;
+    }
     public static void main(String[] args) throws Exception {
         ExcelUtils.excelToCsv(null);
     }

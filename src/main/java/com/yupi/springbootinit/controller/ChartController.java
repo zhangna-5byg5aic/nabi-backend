@@ -32,9 +32,11 @@ import com.yupi.springbootinit.service.UserService;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 
 import com.yupi.springbootinit.utils.ExcelUtils;
@@ -475,7 +477,9 @@ public class ChartController {
      */
     @PostMapping("/gen/async/mq")
     public BaseResponse<BiResponse> genChartByAIAsyncMq(@RequestPart("file") MultipartFile multipartFile,
-                                                      GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
+
+
+    GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
 
         User userLogin = userService.getLoginUser(request);
 
@@ -508,6 +512,7 @@ public class ChartController {
         }
         userInput.append("分析需求：").append(userGoal).append("\n");
 
+        List<Map<Integer, String>> excelData = ExcelUtils.getExcel(multipartFile);
         String csvData=ExcelUtils.excelToCsv(multipartFile);
         userInput.append("原始数据：").append(csvData).append("\n");
         System.out.println("用户输入："+userInput.toString());
@@ -529,13 +534,27 @@ public class ChartController {
         }
 
         long newChartId = chart.getId();
-        //TODO:MQ
+        String tableName = chartService.saveTable(newChartId,excelData);
+        System.out.println("新表："+tableName);
+        //暂时停止发消息，节省ai资源
         biMessageProducer.sendMessage(String.valueOf(newChartId));
         BiResponse biResponse = new BiResponse();
         biResponse.setId(newChartId);
         return ResultUtils.success(biResponse);
 
 
+    }
+
+    @GetMapping("/chart/details")
+    public BaseResponse<List<Map<String, Object>>> getChartDetails(long id, HttpServletRequest request)
+    {
+        String tableName = "chartdata_"+id;
+        System.out.println("tablename:"+tableName);
+        List<Map<String, Object>> chartDetails = chartService.getAllChartData(tableName);
+
+        ThrowUtils.throwIf(chartDetails.size() == 0,ErrorCode.NOT_FOUND_ERROR);
+
+        return ResultUtils.success(chartDetails);
     }
     private void handleChartUpdateError(long chartId, String execMessage) {
         Chart updateChartResult = new Chart();
