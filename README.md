@@ -20,7 +20,7 @@
 - RabbitMq 3.13.2
 ## 系统架构
 - 整体架构图
-![img.png](https://github.com/zhangna-5byg5aic/nabi-backend/blob/1430b43b8b11c2aad56feb8805dc7f1092a84d76/img/img_1.png)
+![img.png](https://github.com/zhangna-5byg5aic/nabi-backend/blob/1430b43b8b11c2aad56feb8805dc7f1092a84d76/img/img.png)
 ##  使用说明
 - 登录页面
 ![img_1.png](https://github.com/zhangna-5byg5aic/nabi-backend/blob/1430b43b8b11c2aad56feb8805dc7f1092a84d76/img/img_1.png)
